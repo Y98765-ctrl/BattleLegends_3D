@@ -5,105 +5,171 @@
 <title>BattleLegends 3D</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-  body { margin:0; overflow:hidden; background:#111;}
-  #hud {
-    position:fixed; top:10px; left:10px; color:#0f0; font-family:Arial, sans-serif; z-index:10;
+  body { margin:0; overflow:hidden; background:#111; font-family:Arial,sans-serif; }
+  #menu {
+    position: fixed; top:0; left:0; width:100%; height:100%; background:#111; color:white; display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:10;
   }
-  #crosshair {
-    position:fixed; top:50%; left:50%; width:20px; height:20px; margin:-10px 0 0 -10px; pointer-events:none;
-  }
+  button { padding:15px 30px; margin:10px; font-size:20px; cursor:pointer; }
+  #options { display:none; flex-direction:column; }
+  #hud { position:fixed; top:10px; left:10px; color:#0f0; z-index:10; display:none; }
+  #crosshair { position:fixed; top:50%; left:50%; width:20px; height:20px; margin:-10px 0 0 -10px; pointer-events:none; display:none; }
   #crosshair::before,#crosshair::after{content:'';position:absolute;background:#fff;}
   #crosshair::before{left:9px; top:0; width:2px; height:20px;}
   #crosshair::after{top:9px; left:0; width:20px; height:2px;}
 </style>
 </head>
 <body>
-<div id="hud"><h2>🔥 BattleLegends 3D</h2><p>WASD Move | Mouse Look | Click Shoot | AI Bots</p></div>
+
+<div id="menu">
+  <h1>🔥 BattleLegends 3D</h1>
+  <button id="playBtn">Play</button>
+  <button id="optionsBtn">Options</button>
+</div>
+
+<div id="options">
+  <h2>Select Your Character</h2>
+  <div id="characters"></div>
+  <button id="backBtn">Back</button>
+</div>
+
+<div id="hud"><h3>Health: 100</h3><p>WASD Move | Mouse Look | Click Shoot</p></div>
 <div id="crosshair"></div>
+
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/PointerLockControls.js"></script>
 
 <script>
-// Scene & Camera
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x222222);
-scene.fog = new THREE.Fog(0x222222, 20, 150);
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 500);
-const renderer = new THREE.WebGLRenderer({antialias:true});
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.shadowMap.enabled = true;
-document.body.appendChild(renderer.domElement);
+// MENU HANDLING
+const menu = document.getElementById('menu');
+const optionsMenu = document.getElementById('options');
+const playBtn = document.getElementById('playBtn');
+const optionsBtn = document.getElementById('optionsBtn');
+const backBtn = document.getElementById('backBtn');
+const charactersDiv = document.getElementById('characters');
+let selectedCharacter = 'Soldier';
 
-// Controls
-const controls = new THREE.PointerLockControls(camera, document.body);
-document.body.addEventListener('click',()=>controls.lock());
-scene.add(controls.getObject());
-
-// Lights
-const hemi = new THREE.HemisphereLight(0xffffff,0x444444,0.6); scene.add(hemi);
-const dir = new THREE.DirectionalLight(0xffffff,1); dir.position.set(10,20,10); dir.castShadow=true; scene.add(dir);
-
-// Ground
-const ground = new THREE.Mesh(new THREE.PlaneGeometry(300,300), new THREE.MeshStandardMaterial({color:0x333}));
-ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; scene.add(ground);
-
-// Player
-const player = new THREE.Mesh(new THREE.BoxGeometry(1,1.8,1), new THREE.MeshStandardMaterial({color:0x00ff00}));
-player.position.y=0.9; scene.add(player);
-
-// Weapon
-const gun = new THREE.Mesh(new THREE.BoxGeometry(0.3,0.2,1), new THREE.MeshStandardMaterial({color:0x111}));
-gun.position.set(0.3,-0.3,-1); camera.add(gun);
-
-// AI Bots (simulated multiplayer)
-const bots = [];
-for(let i=0;i<5;i++){
-  const bot = new THREE.Mesh(new THREE.BoxGeometry(1,1.8,1), new THREE.MeshStandardMaterial({color:0xff0000}));
-  bot.position.set((Math.random()-0.5)*100,0.9,(Math.random()-0.5)*100);
-  scene.add(bot);
-  bots.push({mesh:bot,dir:new THREE.Vector3(Math.random()-0.5,0,Math.random()-0.5).normalize()});
-}
-
-// Movement
-const keys = {}; document.addEventListener('keydown',e=>keys[e.code]=true);
-document.addEventListener('keyup',e=>keys[e.code]=false);
-const speed=6; const clock=new THREE.Clock();
-
-// Shooting
-document.addEventListener('mousedown',()=>{
-  const bullet = new THREE.Mesh(new THREE.SphereGeometry(0.05,8,8), new THREE.MeshBasicMaterial({color:0xff0}));
-  bullet.position.copy(camera.getWorldPosition(new THREE.Vector3())); scene.add(bullet);
-  const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
-  function shoot(){ bullet.position.add(dir.clone().multiplyScalar(1.5)); if(bullet.position.length()<300){ requestAnimationFrame(shoot); }else scene.remove(bullet); } shoot();
+// Character Options
+const characters = [
+  { name:'Soldier', color:0x00ff00, power:'None' },
+  { name:'Ninja', color:0x0000ff, power:'Fast' },
+  { name:'Tank', color:0xff0000, power:'Shield' },
+  { name:'Sniper', color:0xffff00, power:'Long Range' }
+];
+characters.forEach(c=>{
+  const btn = document.createElement('button');
+  btn.textContent = `${c.name} (${c.power})`;
+  btn.style.background = '#222'; btn.style.color='#fff';
+  btn.onclick = ()=> { selectedCharacter = c.name; alert(`${c.name} selected!`) };
+  charactersDiv.appendChild(btn);
 });
 
-// Animate
-function animate(){
-  requestAnimationFrame(animate);
-  const delta = clock.getDelta();
-  let vel = new THREE.Vector3();
-  if(keys['KeyW']) vel.z -= speed*delta;
-  if(keys['KeyS']) vel.z += speed*delta;
-  if(keys['KeyA']) vel.x -= speed*delta;
-  if(keys['KeyD']) vel.x += speed*delta;
-  controls.moveRight(vel.x); controls.moveForward(vel.z);
+// Button Events
+optionsBtn.onclick=()=>{menu.style.display='none'; optionsMenu.style.display='flex';};
+backBtn.onclick=()=>{optionsMenu.style.display='none'; menu.style.display='flex';};
+playBtn.onclick=()=>{menu.style.display='none'; startGame();};
 
-  // Move AI Bots randomly
-  bots.forEach(b=>{b.mesh.position.add(b.dir.clone().multiplyScalar(1.5*delta));
-    if(Math.random()<0.01) b.dir.set(Math.random()-0.5,0,Math.random()-0.5).normalize();
+// START GAME FUNCTION
+function startGame(){
+
+  document.getElementById('hud').style.display='block';
+  document.getElementById('crosshair').style.display='block';
+
+  // Scene
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x222222);
+  scene.fog = new THREE.Fog(0x222222, 20, 150);
+
+  // Camera & Renderer
+  const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 500);
+  const renderer = new THREE.WebGLRenderer({antialias:true});
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.shadowMap.enabled = true;
+  document.body.appendChild(renderer.domElement);
+
+  // Controls
+  const controls = new THREE.PointerLockControls(camera, document.body);
+  document.body.addEventListener('click',()=>controls.lock());
+  scene.add(controls.getObject());
+
+  // Lights
+  const hemi = new THREE.HemisphereLight(0xffffff,0x444444,0.6); scene.add(hemi);
+  const dir = new THREE.DirectionalLight(0xffffff,1); dir.position.set(10,20,10); dir.castShadow=true; scene.add(dir);
+
+  // Ground
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(300,300), new THREE.MeshStandardMaterial({color:0x333}));
+  ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; scene.add(ground);
+
+  // Boxes / Obstacles
+  const boxes = [];
+  for(let i=0;i<50;i++){
+    const box = new THREE.Mesh(new THREE.BoxGeometry(3,Math.random()*6+2,3),
+      new THREE.MeshStandardMaterial({color:0x555555}));
+    box.position.set((Math.random()-0.5)*150, box.geometry.parameters.height/2,(Math.random()-0.5)*150);
+    scene.add(box); boxes.push(box);
+  }
+
+  // Player
+  const playerColor = characters.find(c=>c.name===selectedCharacter).color;
+  const player = new THREE.Mesh(new THREE.BoxGeometry(1,1.8,1), new THREE.MeshStandardMaterial({color:playerColor}));
+  player.position.y=0.9; scene.add(player);
+
+  // Weapon
+  const gun = new THREE.Mesh(new THREE.BoxGeometry(0.3,0.2,1), new THREE.MeshStandardMaterial({color:0x111}));
+  gun.position.set(0.3,-0.3,-1); camera.add(gun);
+
+  // AI Bots
+  const bots = [];
+  for(let i=0;i<5;i++){
+    const bot = new THREE.Mesh(new THREE.BoxGeometry(1,1.8,1),
+      new THREE.MeshStandardMaterial({color:0xff0000}));
+    bot.position.set((Math.random()-0.5)*100,0.9,(Math.random()-0.5)*100);
+    scene.add(bot);
+    bots.push({mesh:bot,dir:new THREE.Vector3(Math.random()-0.5,0,Math.random()-0.5).normalize()});
+  }
+
+  // Movement
+  const keys = {}; document.addEventListener('keydown',e=>keys[e.code]=true);
+  document.addEventListener('keyup',e=>keys[e.code]=false);
+  const speed = selectedCharacter==='Ninja'?10:6; const clock=new THREE.Clock();
+
+  // Shooting
+  document.addEventListener('mousedown',()=>{
+    const bullet = new THREE.Mesh(new THREE.SphereGeometry(0.05,8,8),
+      new THREE.MeshBasicMaterial({color:0xff0}));
+    bullet.position.copy(camera.getWorldPosition(new THREE.Vector3())); scene.add(bullet);
+    const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
+    function shoot(){ bullet.position.add(dir.clone().multiplyScalar(1.5)); if(bullet.position.length()<300){ requestAnimationFrame(shoot); }else scene.remove(bullet); } shoot();
   });
 
-  camera.position.y = 1.6; // camera height
-  renderer.render(scene,camera);
-}
-animate();
+  // Animate
+  function animate(){
+    requestAnimationFrame(animate);
+    const delta = clock.getDelta();
+    let vel = new THREE.Vector3();
+    if(keys['KeyW']) vel.z -= speed*delta;
+    if(keys['KeyS']) vel.z += speed*delta;
+    if(keys['KeyA']) vel.x -= speed*delta;
+    if(keys['KeyD']) vel.x += speed*delta;
+    controls.moveRight(vel.x); controls.moveForward(vel.z);
+    camera.position.y = 1.6;
 
-// Resize
-window.addEventListener('resize',()=>{
-  camera.aspect=window.innerWidth/window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth,window.innerHeight);
-});
+    // AI Bot Movement
+    bots.forEach(b=>{ b.mesh.position.add(b.dir.clone().multiplyScalar(1.5*delta));
+      if(Math.random()<0.01) b.dir.set(Math.random()-0.5,0,Math.random()-0.5).normalize();
+    });
+
+    renderer.render(scene,camera);
+  }
+  animate();
+
+  // Resize
+  window.addEventListener('resize',()=>{
+    camera.aspect=window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+}
 </script>
+
 </body>
 </html>
